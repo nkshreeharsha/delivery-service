@@ -1,0 +1,15 @@
+
+# =========================
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+
+# =========================
+.DS_Store
+Thumbs.db
+# =========================
+.env
+.env.*
+!.env.example
