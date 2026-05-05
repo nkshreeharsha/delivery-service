@@ -6,15 +6,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-chi/chi/v5"
+	
+    "github.com/gin-gonic/gin"
 	"github.com/nkshreeharsha/delivery-service/internal/handler"
 	"github.com/stretchr/testify/assert"
 )
 
 func buildRouter(signer *fakeSigner) http.Handler {
+	gin.SetMode(gin.TestMode)
     h := handler.New(signer, "2026-04-22_1", 60*time.Second)
-    r := chi.NewRouter()
-    r.Get("/v1/subscriber/{subID}/creativeList", h.GetCreativeList)
+    r := gin.New()
+    r.GET("/v1/subscriber/:subID/creativeList", h.GetCreativeList)
     return r
 }
 

@@ -1,7 +1,6 @@
 package handler_test
 
 import (
-	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -10,7 +9,7 @@ import (
 
 	"github.com/nkshreeharsha/delivery-service/internal/handler"
 
-	"github.com/go-chi/chi/v5"
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,20 +24,12 @@ func (f *fakeSigner) SignURL(path string, _ time.Duration) (string, error) {
     return f.returnURL,f.returnError
 }
 
-func requestWithValidSubID(subID string) *http.Request {
-    req := httptest.NewRequest(http.MethodGet, "/v1/subscriber/"+subID+"/creativeList", nil)
-    rctx := chi.NewRouteContext()
-    rctx.URLParams.Add("subID", subID)
-    return req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
-}
-
 func Test_emptySubID_returns400(t *testing.T) {
 	h := handler.New(&fakeSigner{}, "2026-04-22_1", 60*time.Second)
-
-	req := httptest.NewRequest(http.MethodGet, "/any", nil)
 	w := httptest.NewRecorder()
+    c,_ := gin.CreateTestContext(w)
 
-	h.GetCreativeList(w, req)
+	h.GetCreativeList(c)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), "0x01")
@@ -50,7 +41,10 @@ func Test_validSubId_returns302(t *testing.T) {
     h := handler.New(fakeSigner, "2026-04-22_1", 60*time.Second)
 
     w := httptest.NewRecorder()
-    h.GetCreativeList(w, requestWithValidSubID("abc123"))
+    c,_ := gin.CreateTestContext(w)
+    c.Request = httptest.NewRequest(http.MethodGet, "/v1/subscriber/abc123/creativeList", nil)
+    c.Params = gin.Params{{Key: "subID", Value: "abc123"}}
+    h.GetCreativeList(c)
 
     assert.Equal(t, http.StatusFound, w.Code)  // 302
     assert.Equal(t, expectedURL, w.Header().Get("Location"))
@@ -62,7 +56,10 @@ func Test_validSubId_signerError_returns500(t *testing.T) {
     h := handler.New(fakeSigner, "2026-04-22_1", 60*time.Second)
 
     w := httptest.NewRecorder()
-    h.GetCreativeList(w, requestWithValidSubID("abc123"))
+    c,_ := gin.CreateTestContext(w)
+    c.Request = httptest.NewRequest(http.MethodGet, "/v1/subscriber/abc123/creativeList", nil)
+    c.Params = gin.Params{{Key: "subID", Value: "abc123"}}
+    h.GetCreativeList(c)
 
     assert.Equal(t, http.StatusInternalServerError, w.Code)
     assert.Contains(t, w.Body.String(), "0x02")

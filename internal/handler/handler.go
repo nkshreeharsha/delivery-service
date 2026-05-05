@@ -2,11 +2,11 @@ package handler
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-
+	"github.com/gin-gonic/gin"
 )
 
 type StorageSigner interface {
@@ -27,29 +27,22 @@ func New(signer StorageSigner, activeFolderVersion string, signedURLTTL time.Dur
 		signedURLTTL: signedURLTTL}
 }
 
-func writeErrorResponse(w http.ResponseWriter, statusCode int, errorCode string, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	http.Error(w, fmt.Sprintf(`{"error": "%s"}`, errorCode), statusCode)
-	fmt.Fprint(w, message)
-}
 
-func (h *Handler) GetCreativeList(w http.ResponseWriter, r *http.Request){
-	subID := chi.URLParam(r, "subID")
+func (h *Handler) GetCreativeList(c *gin.Context){
+	subID := c.Param("subID")
 	if subID == "" {
-		writeErrorResponse(w, http.StatusBadRequest, "0x01", "Missing obfuscatedSubId")
+		c.JSON(http.StatusBadRequest, gin.H{"error" : "0x01"})
 		return
 	}
 
-	// Placeholder for actual creative list retrieval logic
 	objectPath := fmt.Sprintf("%s/%s.csv", h.activeFolderVersion, subID)
-
+	log.Printf("Generating signed URL for object path: %s", objectPath)
 	signedURL, err := h.signer.SignURL(objectPath, h.signedURLTTL)
+	log.Printf("Signed URL generation result: %s, error: %v", signedURL, err)
 	if err != nil {
-		writeErrorResponse(w, http.StatusInternalServerError, "0x02", "Failed to sign URL")
+		c.JSON(http.StatusInternalServerError, gin.H{"error" : "0x02"})
 		return
 	}
 
-	http.Redirect(w, r, signedURL, http.StatusFound)
-
+	c.Redirect(http.StatusFound, signedURL)
 }

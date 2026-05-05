@@ -11,8 +11,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+
+	
+    "github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/nkshreeharsha/delivery-service/internal/handler"
 )
@@ -41,14 +42,12 @@ func main() {
 
 	h := handler.New(signer,"2026-04-22_1",60*time.Second)
 
-	r := chi.NewRouter()
-	r.Use(middleware.Logger) 
+	r := gin.Default()
 
-	r.Get("/v1/subscriber/{subID}/creativeList", h.GetCreativeList)
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
-		
+	r.GET("/v1/subscriber/:subID/creativeList", h.GetCreativeList)
+	r.GET("/health", func(c *gin.Context) {
+		c.Writer.WriteHeader(http.StatusOK)
+		c.Writer.Write([]byte("OK"))
 	})
 
 	log.Println("Server starting on :8080")
@@ -79,9 +78,9 @@ func (s *S3Client) SignURL(objectPath string, expiry time.Duration) (string, err
 }
 
 func newS3Signer(bucket, region, accessKey, secretKey string) (*S3Client, error){
-	context := context.Background()
+	ctx := context.Background()
 
-	cfg, err := config.LoadDefaultConfig(context,config.WithRegion(region),
+	cfg, err := config.LoadDefaultConfig(ctx,config.WithRegion(region),
 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKey, secretKey, "")))
 
 		if err != nil {
